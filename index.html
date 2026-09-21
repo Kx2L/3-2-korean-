@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>중3 국어 문장의 짜임 OX 스피드 퀴즈</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#101827;color:#f8fafc;font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;min-height:100vh}
+.wrap{max-width:800px;margin:auto;padding:20px 15px 45px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+h1{font-size:23px;margin:0}.stats{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.badge{background:#1d2939;border:1px solid #344155;border-radius:10px;padding:7px 9px;font-size:12px}.badge b{color:#a5b4fc}
+.timer{height:11px;background:#344155;border-radius:99px;overflow:hidden;margin:10px 0 15px}
+.bar{height:100%;width:100%;background:#818cf8}
+.card{background:#fff;color:#111827;border-radius:22px;padding:28px 22px;min-height:420px;display:flex;flex-direction:column;justify-content:center;text-align:center;box-shadow:0 15px 45px #0006}
+.tag{font-size:13px;color:#6366f1;font-weight:900;margin-bottom:15px}
+.q{font-size:23px;font-weight:800;line-height:1.65;margin:0 auto 28px;max-width:680px;word-break:keep-all}
+.buttons{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.btn{border:0;border-radius:16px;padding:22px;font-size:29px;font-weight:900;cursor:pointer;transition:.12s}
+.ox-o{background:#dcfce7;color:#166534}.ox-x{background:#fee2e2;color:#991b1b}
+.btn:hover{transform:translateY(-2px)}.btn:disabled{opacity:.55;cursor:default;transform:none}
+.feedback{min-height:58px;margin-top:17px;font-weight:700;line-height:1.55}.correct{color:#15803d}.incorrect{color:#dc2626}
+.restart,.start{border:0;background:#6366f1;color:white;border-radius:13px;padding:13px 22px;font-size:16px;font-weight:800;cursor:pointer}
+.overlay{position:fixed;inset:0;background:#0b1020ee;display:flex;align-items:center;justify-content:center;padding:18px;z-index:5}
+.modal{background:#fff;color:#111827;border-radius:22px;max-width:560px;width:100%;padding:29px;text-align:center}.modal h2{margin:0 0 10px}.modal p{line-height:1.65}
+.hidden{display:none!important}.small{font-size:13px;color:#9ca3af;margin-top:12px;text-align:center;line-height:1.5}
+@media(max-width:600px){.top{flex-direction:column;align-items:flex-start}.stats{justify-content:flex-start}.q{font-size:20px}.card{min-height:430px;padding:23px 15px}.btn{font-size:26px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="top">
+  <h1>중3 국어 · 문장의 짜임 OX</h1>
+  <div class="stats">
+    <div class="badge">문제 <b id="num">0</b></div>
+    <div class="badge">연속 <b id="streak">0</b></div>
+    <div class="badge">점수 <b id="score">0</b></div>
+    <div class="badge">제한 <b id="limit">8.0</b>초</div>
+  </div>
+</div>
+<div class="timer"><div class="bar" id="bar"></div></div>
+
+<div class="card">
+  <div class="tag" id="tag">START</div>
+  <p class="q" id="question">시작 버튼을 눌러 문제를 풀어 보세요.</p>
+  <div class="buttons">
+    <button class="btn ox-o" id="o" onclick="answer(true)">O</button>
+    <button class="btn ox-x" id="x" onclick="answer(false)">X</button>
+  </div>
+  <div class="feedback" id="feedback"></div>
+</div>
+
+<div style="text-align:center;margin-top:14px"><button class="restart" onclick="startGame()">처음부터 다시</button></div>
+<div class="small">교과서 사진의 범위까지 반영: 문장의 기본 구조 · 문장 성분 · 홑문장/겹문장 · 이어진문장 · 안은문장(명사절·관형절·부사절·서술절·인용절)</div>
+</div>
+
+<div class="overlay" id="intro">
+ <div class="modal">
+  <h2>문장의 짜임 OX 스피드 퀴즈</h2>
+  <p>
+  한 문제씩 무작위로 계속 출제됩니다.<br>
+  <b>정답을 맞힐 때마다 다음 문제의 제한 시간이 0.25초씩 줄어듭니다.</b><br>
+  최소 2.5초까지 빨라집니다. 틀리거나 시간 초과하면 8초로 돌아갑니다.
+  </p>
+  <p>문제는 단순 암기뿐 아니라 실제 문장을 보고 문장 성분과 문장의 짜임을 판단하도록 구성했습니다.</p>
+  <button class="start" onclick="startGame()">게임 시작</button>
+ </div>
+</div>
+
+<script>
+const bank = [
+/* 문장의 기본 구조 */
+["‘물이 맑다.’에서 ‘물이’는 주어이고 ‘맑다’는 서술어이다.",true,"‘물이’는 무엇이 맑은지를 나타내는 주어이고, ‘맑다’는 주어의 상태를 나타내는 서술어이다."],
+["‘산이 높다.’에서 서술어 ‘높다’는 주어의 상태나 성질을 나타낸다.",true,"‘높다’는 산의 상태를 나타내는 서술어이다."],
+["‘꽃이 피었다.’에서 ‘꽃이’는 주어이다.",true,"‘꽃이’는 무엇이 피었는지를 나타내므로 주어이다."],
+["‘철수가 달린다.’에서 ‘달린다’는 주어의 동작을 나타내는 서술어이다.",true,"‘달린다’는 주어 ‘철수’의 동작을 나타낸다."],
+["‘영수는 의사가 되었다.’에서 ‘의사가’는 보어이다.",true,"‘되다’와 함께 쓰여 주어의 내용을 보충하므로 ‘의사가’는 보어이다."],
+["‘동생은 초등학생이 아니다.’에서 ‘초등학생이’는 보어이다.",true,"‘아니다’가 주어 외에 요구하는 성분으로 ‘초등학생이’가 보어 역할을 한다."],
+["‘영수가 책을 샀다.’에서 ‘책을’은 목적어이다.",true,"‘샀다’의 대상이 되는 성분이므로 목적어이다."],
+["목적어는 일반적으로 ‘누가/무엇이 무엇을 어찌하다’에서 ‘무엇을’에 해당한다.",true,"목적어는 동작의 대상이 되는 문장 성분으로 ‘무엇을’에 해당한다."],
+["보어는 모든 서술어 앞에 반드시 필요한 문장 성분이다.",false,"보어는 ‘되다’, ‘아니다’와 같은 일부 서술어가 주어 외에 요구하는 성분이다."],
+["‘가을은 독서의 계절이다.’에서 ‘가을은’은 주어이다.",true,"‘가을은’은 무엇이 독서의 계절인지를 나타내는 주어이다."],
+["‘가을은 독서의 계절이다.’에서 ‘독서의 계절이다’는 서술어이다.",true,"주어 ‘가을은’에 대해 무엇인지 설명하는 서술어이다."],
+["문장 성분은 문장 안에서 일정한 문법적 기능을 하는 부분이다.",true,"문장 성분은 문장 안에서 일정한 문법적 기능을 담당하는 부분이다."],
+
+/* 문장 성분 */
+["문장 성분의 종류에는 주성분, 부속 성분, 독립 성분이 있다.",true,"교과서의 분류에 따르면 문장 성분은 주성분·부속 성분·독립 성분으로 나뉜다."],
+["주성분에는 주어, 서술어, 목적어, 보어가 있다.",true,"주성분은 주어·서술어·목적어·보어이다."],
+["부속 성분에는 관형어와 부사어가 있다.",true,"부속 성분은 주성분의 내용을 자세하게 꾸며 주며 관형어와 부사어가 있다."],
+["독립 성분에는 독립어가 있다.",true,"독립어는 다른 문장 성분과 직접적인 관계를 맺지 않고 독립적으로 쓰인다."],
+["주어는 동작이나 작용, 상태나 성질 등의 주체가 되는 문장 성분이다.",true,"주어는 문장에서 동작이나 상태 등의 주체가 된다."],
+["서술어는 주어의 동작이나 상태 등을 풀이하는 문장 성분이다.",true,"서술어는 주어의 동작·상태·성질 등을 풀이한다."],
+["목적어는 서술어가 나타내는 동작의 대상이 되는 문장 성분이다.",true,"목적어는 동작의 대상이 되는 성분이다."],
+["관형어는 주로 체언을 꾸며 주는 문장 성분이다.",true,"관형어는 명사·대명사·수사와 같은 체언을 꾸며 준다."],
+["부사어는 주로 용언을 꾸며 주는 문장 성분이다.",true,"부사어는 주로 동사·형용사와 같은 용언을 꾸민다."],
+["부사어는 문장 전체를 꾸며 주기도 한다.",true,"교과서 설명처럼 부사어는 때로 관형어나 다른 부사어, 문장 전체를 꾸미기도 한다."],
+["‘예쁜 꽃이 피었다.’에서 ‘예쁜’은 관형어이다.",true,"‘예쁜’이 체언 ‘꽃’을 꾸미므로 관형어이다."],
+["‘장미꽃이 참 예쁘다.’에서 ‘참’은 부사어이다.",true,"‘참’이 용언 ‘예쁘다’를 꾸미므로 부사어이다."],
+["‘과연 그는 훌륭한 예술가로구나.’에서 ‘과연’은 독립어이다.",false,"‘과연’은 문장 전체의 내용을 꾸미는 부사어이다."],
+["독립어는 다른 문장 성분과 직접적인 관계를 맺지 않고 독립적으로 쓰인다.",true,"감탄·부름·응답 등을 나타내며 다른 성분과 직접적인 관계를 맺지 않는다."],
+["‘지영아, 너는 피아노를 잘 치는구나.’에서 ‘지영아’는 독립어이다.",true,"‘지영아’는 부름을 나타내며 문장의 다른 성분과 직접적인 관계를 맺지 않는다."],
+["‘세상에, 이게 무슨 일이야?’에서 ‘세상에’는 독립어로 볼 수 있다.",true,"‘세상에’는 감탄을 나타내는 독립어로 쓰였다."],
+
+/* 홑문장/겹문장 */
+["주어와 서술어의 관계가 한 번만 나타나는 문장은 홑문장이다.",true,"교과서에서 홑문장을 이렇게 정의한다."],
+["주어와 서술어의 관계가 두 번 이상 나타나는 문장은 겹문장이다.",true,"주어와 서술어의 관계가 두 번 이상 나타나면 겹문장이다."],
+["‘제비꽃은 정말 예쁘다.’는 홑문장이다.",true,"주어 ‘제비꽃은’과 서술어 ‘예쁘다’의 관계가 한 번 나타난다."],
+["‘경우는 영화를 보고 희수는 책을 읽는다.’는 홑문장이다.",false,"둘 이상의 주어와 서술어 관계가 나타나므로 겹문장이다."],
+["홑문장인지 겹문장인지는 문장 성분의 개수만 세어 판단한다.",false,"핵심은 문장 성분의 개수가 아니라 주어와 서술어의 관계가 몇 번 나타나는지이다."],
+["문장이 길면 반드시 겹문장이다.",false,"문장의 길이가 아니라 주어와 서술어의 관계를 기준으로 판단한다."],
+
+/* 이어진문장 */
+["이어진문장은 둘 이상의 홑문장이 대등하게 이어지거나 종속적으로 이어지는 문장이다.",true,"이어진문장은 둘 이상의 홑문장이 대등 또는 종속 관계로 이어진다."],
+["대등하게 이어진문장은 앞 절과 뒤 절의 의미 관계가 대등하다.",true,"대등하게 이어진문장에서는 앞 절과 뒤 절이 나란한 의미 관계를 이룬다."],
+["종속적으로 이어진문장은 앞 절과 뒤 절의 의미 관계가 대등하지 않다.",true,"한 절이 다른 절에 의미상 종속되는 관계이다."],
+["‘윤지는 웃었지만 민서는 울었다.’는 대등하게 이어진문장이다.",true,"두 절이 대조 관계로 나란히 이어진 대등하게 이어진문장이다."],
+["‘산이 높으면 골짜기가 깊다.’는 대등하게 이어진문장이다.",false,"‘산이 높으면’이 조건을 나타내며 뒤 절에 종속되는 문장이다."],
+["‘산이 높으면 골짜기가 깊다.’는 종속적으로 이어진문장이다.",true,"앞 절이 조건을 나타내고 뒤 절에 종속된다."],
+["‘비가 와서 길이 젖었다.’는 종속적으로 이어진문장이다.",true,"앞 절이 원인을 나타내고 뒤 절에 종속되는 관계이다."],
+["‘공부를 열심히 하려고 도서관에 갔다.’는 종속적으로 이어진문장이다.",true,"앞 절이 목적을 나타내며 뒤 절과 종속적인 관계를 이룬다."],
+["대등하게 이어진문장의 연결 어미에는 ‘-고’, ‘-지만’ 등이 쓰일 수 있다.",true,"대등 관계를 나타내는 연결 어미의 예로 ‘-고’, ‘-지만’ 등이 있다."],
+["종속적으로 이어진문장에는 원인·조건·목적·의도 등의 의미 관계가 나타날 수 있다.",true,"종속 관계에서는 원인·조건·목적·의도 등의 의미가 나타날 수 있다."],
+["이어진문장은 반드시 ‘그리고’라는 접속어가 있어야 한다.",false,"접속어 ‘그리고’가 반드시 있어야 하는 것은 아니며 연결 어미 등을 통해 이어질 수 있다."],
+["‘철수는 운동을 하고 영희는 공부한다.’는 대등하게 이어진문장이다.",true,"두 절이 나란히 이어져 있어 대등하게 이어진문장이다."],
+["‘해가 뜨고 날이 밝았다.’는 홑문장이다.",false,"‘해가 뜨다’와 ‘날이 밝다’라는 두 절이 이어진 겹문장이다."],
+["‘비가 오면 경기를 취소한다.’에서 ‘비가 오면’은 조건의 의미를 나타낸다.",true,"‘-면’이 조건의 의미를 나타내며 앞 절이 뒤 절에 종속된다."],
+
+/* 안은문장 총론 */
+["안은문장은 한 문장이 다른 문장을 하나의 문장 성분처럼 안고 있는 문장이다.",true,"교과서에서는 한 문장이 다른 문장을 하나의 문장 성분처럼 안고 있는 문장으로 설명한다."],
+["안은문장에서 다른 문장에 들어간 절을 안긴문장이라고 한다.",true,"전체 문장 안에 들어간 절을 안긴문장이라고 한다."],
+["안은문장은 이어진문장과 달리 다른 절을 문장 성분처럼 안고 있을 수 있다.",true,"안은문장은 안긴문장이 전체 문장에서 하나의 성분처럼 기능한다."],
+["안은문장은 반드시 안긴문장이 문장의 맨 앞에 있어야 한다.",false,"안긴문장의 위치는 문장의 구조에 따라 달라질 수 있다."],
+
+/* 명사절 */
+["명사절을 가진 안은문장에서 안긴문장은 문장 안에서 주어·목적어 등의 기능을 할 수 있다.",true,"명사절은 명사처럼 기능하여 주어·목적어 등이 될 수 있다."],
+["명사절은 주로 ‘-(으)ㅁ’, ‘-기’ 등을 붙여 만들 수 있다.",true,"교과서에서 명사절을 만드는 전성 어미의 예로 ‘-(으)ㅁ’, ‘-기’를 제시한다."],
+["‘나는 그가 오기를 기다렸다.’에서 ‘그가 오기를’은 명사절이다.",true,"‘그가 오다’에 ‘-기’를 붙여 명사절이 되었고 ‘기다렸다’의 목적어 역할을 한다."],
+["‘그가 떠남이 아쉽다.’에서 ‘그가 떠남’은 명사절로 볼 수 있다.",true,"‘떠나다’에 ‘-ㅁ’이 붙어 명사처럼 기능하는 명사절이 되었다."],
+["명사절은 항상 체언을 꾸미는 역할만 한다.",false,"체언을 꾸미는 것은 관형절이며, 명사절은 주어·목적어 등의 역할을 할 수 있다."],
+
+/* 관형절 */
+["관형절을 가진 안은문장은 관형절이 체언을 꾸미는 문장이다.",true,"관형절은 전체 문장 안에서 관형어 기능을 하며 체언을 꾸민다."],
+["관형절을 만드는 전성 어미의 예로 ‘-(으)ㄴ’, ‘-는’ 등이 있다.",true,"교과서에서는 관형사형 전성 어미의 예로 ‘-(으)ㄴ’, ‘-는’ 등을 제시한다."],
+["‘나는 아이가 우는 소리를 들었다.’에서 ‘아이가 우는’은 관형절이다.",true,"‘아이가 울다’가 ‘소리’를 꾸미는 관형절로 들어가 있다."],
+["‘내가 읽은 책은 재미있다.’에서 ‘내가 읽은’은 ‘책’을 꾸민다.",true,"‘내가 읽은’이 체언 ‘책’을 수식하는 관형절이다."],
+["관형절은 명사를 꾸미므로 관형어의 기능을 한다.",true,"관형절은 안은문장 속에서 관형어 역할을 한다."],
+["‘나는 아이가 우는 소리를 들었다.’에서 ‘아이가 우는’은 부사절이다.",false,"‘아이가 우는’은 체언 ‘소리’를 꾸미므로 관형절이다."],
+
+/* 부사절 */
+["부사절을 가진 안은문장은 부사절이 문장에서 부사어 기능을 하는 문장이다.",true,"부사절은 전체 문장에서 부사어 역할을 한다."],
+["부사절을 만드는 전성 어미의 예로 ‘-게’, ‘-도록’ 등이 있다.",true,"교과서에서는 부사절을 만드는 예로 ‘-게’, ‘-도록’ 등을 제시한다."],
+["‘병수는 이가 시리도록 차가웠다.’에서 ‘이가 시리도록’은 부사절이다.",true,"‘이가 시리도록’이 서술어 ‘차가웠다’를 꾸미는 부사절이다."],
+["‘이가 시리도록’은 문장에서 부사어 기능을 한다.",true,"부사절 전체가 서술어의 상태를 꾸미므로 부사어 기능을 한다."],
+["부사절은 체언만 꾸미는 절이다.",false,"체언을 꾸미는 절은 관형절이며 부사절은 부사어 기능을 한다."],
+
+/* 서술절 */
+["서술절을 가진 안은문장에서는 절 전체가 서술어 기능을 한다.",true,"교과서에서는 서술절 전체가 문장의 서술어 기능을 하는 안은문장으로 설명한다."],
+["‘승재는 마음씨가 곱다.’는 서술절을 가진 안은문장이다.",true,"‘마음씨가 곱다’라는 절 전체가 ‘승재는’에 대한 서술 기능을 한다."],
+["‘승재는 마음씨가 곱다.’에서 ‘마음씨가 곱다’는 서술절이다.",true,"‘마음씨가 곱다’ 전체가 주어 ‘승재는’을 서술하는 절이다."],
+["서술절은 항상 목적어 기능을 한다.",false,"서술절은 문장 전체에서 서술어 기능을 한다."],
+
+/* 인용절 */
+["인용절을 가진 안은문장은 다른 사람의 말을 옮긴 인용절을 안고 있는 문장이다.",true,"인용절은 다른 사람의 말을 옮겨 전체 문장 속에 포함한 절이다."],
+["직접 인용은 인용된 말에 조사 ‘라고’를 붙여 나타낼 수 있다.",true,"교과서의 예처럼 직접 인용은 ‘라고’를 붙여 나타낼 수 있다."],
+["간접 인용은 인용된 말에 조사 ‘고’를 붙여 나타낼 수 있다.",true,"교과서에서는 간접 인용의 예로 ‘고’를 붙이는 방식을 제시한다."],
+["‘민재는 “그의 말이 옳다.”라고 말하였다.’는 인용절을 가진 안은문장이다.",true,"다른 사람의 말을 직접 인용한 인용절을 안고 있는 문장이다."],
+["‘민재는 그의 말이 옳다고 말하였다.’에서 ‘그의 말이 옳다고’는 인용절이다.",true,"인용된 내용을 간접적으로 나타내고 있으며 ‘고’가 붙어 있다."],
+["인용절은 다른 사람의 말을 옮기는 기능과 관계가 없다.",false,"인용절은 다른 사람의 말을 옮긴 내용을 문장 속에 포함하는 것과 관련된다."],
+
+/* 종합 */
+["‘내가 좋아하는 음식은 김치찌개이다.’는 관형절을 가진 안은문장이다.",true,"‘내가 좋아하는’이 ‘음식’을 꾸미는 관형절이다."],
+["‘나는 네가 오기를 기다렸다.’는 명사절을 가진 안은문장이다.",true,"‘네가 오기를’이 명사절로서 목적어 기능을 한다."],
+["‘병수는 이가 시리도록 차가웠다.’는 부사절을 가진 안은문장이다.",true,"‘이가 시리도록’이 부사절로서 부사어 기능을 한다."],
+["‘승재는 마음씨가 곱다.’는 인용절을 가진 안은문장이다.",false,"이 문장은 ‘마음씨가 곱다’라는 서술절을 가진 안은문장이다."],
+["‘나는 아이가 우는 소리를 들었다.’는 명사절을 가진 안은문장이다.",false,"‘아이가 우는’이 ‘소리’를 꾸미는 관형절이다."],
+["‘나는 네가 정직하다고 생각한다.’에서 ‘네가 정직하다고’는 명사절 기능을 한다.",true,"‘네가 정직하다’가 ‘생각한다’의 내용을 나타내는 명사절로 기능한다."],
+["‘나는 네가 정직하다고 생각한다.’에서 ‘네가 정직하다고’는 관형절이다.",false,"명사를 꾸미는 것이 아니라 ‘생각한다’의 내용을 나타내므로 명사절 기능을 한다."],
+["관형절은 안은문장 안에서 관형어의 기능을 한다.",true,"관형절은 체언을 꾸미는 관형어 역할을 한다."],
+["명사절은 안은문장 안에서 명사와 비슷한 기능을 한다.",true,"명사절은 주어·목적어 등 명사가 맡을 수 있는 문장 성분으로 기능할 수 있다."],
+["부사절은 안은문장 안에서 부사어 기능을 한다.",true,"부사절은 용언이나 문장 전체를 꾸미는 부사어 기능을 한다."],
+["서술절은 안은문장 안에서 서술어 기능을 한다.",true,"서술절 전체가 주어의 동작·상태·성질 등을 서술한다."],
+["인용절은 안은문장 안에서 인용된 말을 나타내는 절이다.",true,"인용절은 다른 사람의 말을 직접 또는 간접으로 옮긴 내용을 나타낸다."],
+["홑문장과 겹문장을 구별할 때는 주어와 서술어의 관계가 몇 번 나타나는지를 확인하는 것이 중요하다.",true,"문장의 짜임을 판단할 때 절의 구조와 주어·서술어 관계를 살펴본다."],
+["이어진문장은 안은문장과 완전히 같은 개념이다.",false,"이어진문장은 절과 절이 이어진 구조이고, 안은문장은 한 절이 다른 문장 속에 문장 성분처럼 들어간 구조이다."],
+["겹문장에는 이어진문장과 안은문장이 있다.",true,"교과서의 문장의 짜임에서는 겹문장을 이어진문장과 안은문장으로 나눈다."],
+["‘비가 오지만 우리는 출발했다.’는 안은문장이다.",false,"두 절이 연결 어미 ‘-지만’으로 이어진 대등하게 이어진문장이다."],
+["‘나는 친구가 온다는 말을 들었다.’는 안은문장이다.",true,"‘친구가 온다는’이라는 관형절이 ‘말’을 꾸미며 안겨 있다."],
+["‘철수가 집에 오자 어머니가 저녁을 차렸다.’는 안은문장이다.",false,"두 절이 연결 어미로 이어진 종속적으로 이어진문장이다."],
+["‘그가 범인이라는 사실이 밝혀졌다.’에서 ‘그가 범인이라는’은 ‘사실’을 꾸미는 관형절이다.",true,"‘그가 범인이다’가 ‘사실’을 꾸미는 관형절로 들어가 있다."],
+["‘그가 범인이라는 사실’에서 ‘그가 범인이라는’은 명사절이다.",false,"이 부분은 명사 ‘사실’을 꾸미므로 관형절이다."],
+["‘네가 와서 기쁘다.’는 앞 절과 뒤 절이 원인과 결과의 관계로 이어진문장이다.",true,"‘네가 와서’가 원인을 나타내고 ‘기쁘다’가 그 결과를 나타낸다."],
+["‘나는 책을 읽고 동생은 그림을 그린다.’는 대등하게 이어진문장이다.",true,"두 절이 나란히 연결되어 있어 대등하게 이어진문장이다."],
+["‘나는 책을 읽으려고 도서관에 갔다.’는 목적의 의미를 나타내는 종속적으로 이어진문장이다.",true,"‘책을 읽으려고’가 목적을 나타내며 뒤 절에 종속된다."],
+["‘가을은 독서의 계절이다.’는 주어와 서술어의 관계가 한 번 나타나는 홑문장이다.",true,"‘가을은’과 ‘독서의 계절이다’ 사이의 주어-서술어 관계가 한 번이다."],
+["‘동생은 초등학생이 아니다.’에서 ‘초등학생이’는 목적어이다.",false,"‘아니다’가 주어 외에 요구하는 성분이므로 보어이다."],
+["‘영수가 책을 샀다.’에서 ‘책을’은 보어이다.",false,"‘책을’은 서술어 ‘샀다’의 동작 대상이므로 목적어이다."],
+["‘장미꽃이 참 예쁘다.’에서 ‘장미꽃이’는 부사어이다.",false,"‘장미꽃이’는 무엇이 예쁜지를 나타내므로 주어이다."],
+["‘장미꽃이 참 예쁘다.’에서 ‘참’은 서술어 ‘예쁘다’를 꾸미는 부사어이다.",true,"‘참’은 ‘예쁘다’의 정도를 꾸미므로 부사어이다."]
+];
+
+let current=-1,score=0,streak=0,total=0,limit=8,remain=8,timer=null,locked=false,used=[];
+const $=id=>document.getElementById(id);
+
+function startGame(){
+ clearInterval(timer); $("intro").classList.add("hidden");
+ score=0;streak=0;total=0;limit=8;used=[];
+ $("score").textContent=0;$("streak").textContent=0;next();
+}
+function next(){
+ locked=false;$("feedback").textContent="";$("feedback").className="feedback";
+ let candidates=bank.map((_,i)=>i).filter(i=>!used.includes(i));
+ if(!candidates.length)used=[];
+ candidates=bank.map((_,i)=>i).filter(i=>!used.includes(i));
+ const idx=candidates[Math.floor(Math.random()*candidates.length)];
+ used.push(idx);current=idx;
+ $("num").textContent=total+1;$("tag").textContent=`QUESTION ${total+1}`;
+ $("question").textContent=bank[idx][0];
+ $("o").disabled=false;$("x").disabled=false;startTimer();
+}
+function startTimer(){
+ clearInterval(timer);remain=limit;draw();
+ const start=performance.now(),duration=limit*1000;
+ timer=setInterval(()=>{
+   remain=Math.max(0,duration-(performance.now()-start))/1000;draw();
+   if(remain<=0){clearInterval(timer);timeOut();}
+ },25);
+}
+function draw(){
+ $("limit").textContent=limit.toFixed(2);
+ $("bar").style.width=Math.max(0,remain/limit*100)+"%";
+}
+function answer(val){
+ if(locked)return;locked=true;clearInterval(timer);
+ $("o").disabled=true;$("x").disabled=true;total++;
+ const correct=(bank[current][1]===val);
+ if(correct){
+   score++;streak++;limit=Math.max(2.5,limit-0.25);
+   $("feedback").textContent="정답! "+bank[current][2];
+   $("feedback").className="feedback correct";
+ }else{
+   streak=0;limit=8;
+   $("feedback").textContent="오답. "+bank[current][2];
+   $("feedback").className="feedback incorrect";
+ }
+ $("score").textContent=score;$("streak").textContent=streak;
+ setTimeout(next,1100);
+}
+function timeOut(){
+ if(locked)return;locked=true;
+ $("o").disabled=true;$("x").disabled=true;total++;streak=0;limit=8;
+ $("feedback").textContent="시간 초과! "+bank[current][2];
+ $("feedback").className="feedback incorrect";
+ $("score").textContent=score;$("streak").textContent=0;
+ setTimeout(next,1200);
+}
+</script>
+</body>
+</html>
